@@ -2,6 +2,7 @@ package com.example.app02;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +30,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
-    private List<String> dataList;
+    private List<Item> dataList;
     private DataAdapter adapter;
 
     @Override
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadDataFromApi() {
-        String url = "https://jsonplaceholder.typicode.com/posts"; // 這裡用 JSONPlaceholder 作為範例
+        String url = "http://example.com/your_json_endpoint"; // 替換成你的 JSON 檔案 URL
 
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONArray>() {
@@ -57,19 +58,24 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(JSONArray response) {
                         try {
                             for (int i = 0; i < response.length(); i++) {
-                                JSONObject jsonObject = response.getJSONObject(i);
-                                String title = jsonObject.getString("title");
-                                dataList.add(title);
+                                JSONObject item = response.getJSONObject(i);
+                                String category = item.getString("類別");
+                                String link = item.getString("網頁連結");
+                                String description = item.getString("說明");
+
+                                dataList.add(new Item(category, link, description));
                             }
                             adapter.notifyDataSetChanged();
                         } catch (JSONException e) {
                             e.printStackTrace();
+                            Toast.makeText(MainActivity.this, "Error parsing JSON", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Toast.makeText(MainActivity.this, "Error loading data", Toast.LENGTH_SHORT).show();
+                Log.e("MainActivity", "Error loading data", error);
             }
         });
 
@@ -77,12 +83,11 @@ public class MainActivity extends AppCompatActivity {
         queue.add(request);
     }
 
-    // RecyclerView 的 Adapter
     private class DataAdapter extends RecyclerView.Adapter<DataAdapter.ViewHolder> {
 
-        private List<String> data;
+        private List<Item> data;
 
-        public DataAdapter(List<String> data) {
+        public DataAdapter(List<Item> data) {
             this.data = data;
         }
 
@@ -95,15 +100,16 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            String item = data.get(position);
-            holder.textView.setText(item);
+            Item item = data.get(position);
+            holder.textView.setText(item.getCategory());
 
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    // 點擊項目後跳轉到詳細資料頁面
                     Intent intent = new Intent(MainActivity.this, DetailActivity.class);
-                    intent.putExtra("title", item); // 將資料傳遞到詳細資料頁面
+                    intent.putExtra("category", item.getCategory());
+                    intent.putExtra("link", item.getLink());
+                    intent.putExtra("description", item.getDescription());
                     startActivity(intent);
                 }
             });
